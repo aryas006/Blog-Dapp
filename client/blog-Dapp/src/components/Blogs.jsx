@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import abi from "../context/Blog.json";
+import { contractAddress, contractABI } from "../utils/constants";
 import "../App.css";
 
 const ContractViewer = () => {
-  const [postsCount, setPostsCount] = useState(0);
+  const [posts, setPosts] = useState([]);
   const [contract, setContract] = useState(null);
 
   useEffect(() => {
@@ -20,8 +20,8 @@ const ContractViewer = () => {
 
           // Replace with your smart contract address and ABI
           const contractInstance = new ethers.Contract(
-            process.env.CONTRACT_ADDRESS,
-            abi.abi,
+            contractAddress, // Replace with your contract address
+            contractABI,
             signer
           );
 
@@ -39,13 +39,20 @@ const ContractViewer = () => {
     init();
   }, []);
 
-  const fetchPostsCount = async () => {
+  const fetchPosts = async () => {
     if (!contract) return;
 
     try {
-      // Call the smart contract function to get the total count of posts
-      const count = await contract.getAllPostsCount();
-      setPostsCount(count.toNumber());
+      // Call the smart contract function to get all posts
+      const postCount = await contract.viewPostsCount();
+      const newPosts = [];
+
+      for (let i = 1; i <= postCount; i++) {
+        const post = await contract.getPost(i);
+        newPosts.push(post);
+      }
+
+      setPosts(newPosts);
     } catch (error) {
       console.error(error);
     }
@@ -53,16 +60,23 @@ const ContractViewer = () => {
 
   useEffect(() => {
     if (contract) {
-      fetchPostsCount();
+      fetchPosts();
     }
   }, [contract]);
 
   return (
     <div className="container">
-      <div className="postCountCard">
-        {/* Display the posts count */}
-        <strong>Total Posts:</strong> {postsCount}
-      </div>
+      {posts.map((post, index) => (
+        <div key={index} className="postCard">
+          <h2>{post.title}</h2>
+          <p>
+            <strong>Content:</strong> {post.content}
+          </p>
+          <p>
+            <strong>Author:</strong> {post.author}
+          </p>
+        </div>
+      ))}
     </div>
   );
 };
